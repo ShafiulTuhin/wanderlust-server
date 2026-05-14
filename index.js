@@ -5,6 +5,7 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 const dotenv = require("dotenv");
 const cors = require("cors");
+const { createRemoteJWKSet, jwtVerify } = require("jose-cjs");
 
 dotenv.config();
 const port = process.env.PORT;
@@ -13,6 +14,27 @@ const uri = process.env.MONGODB_URI;
 // middleware
 app.use(cors());
 app.use(express.json());
+
+const JWKS = createRemoteJWKSet(
+  new URL("https://wandertlust-client.vercel.app/api/auth/jwks"),
+);
+const verifyToken = async (req, res, next) => {
+  const header = req?.headers.authorization;
+  if (!header) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+  const token = header.split(" ")[1];
+  if (!token) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+  try {
+    const { payload } = await jwtVerify(token, JWKS);
+    next();
+    console.log(payload);
+  } catch (error) {
+    return res.status(403).json({ message: "Forbidden" });
+  }
+};
 
 const client = new MongoClient(uri, {
   serverApi: {
@@ -41,14 +63,18 @@ async function run() {
       res.send(result);
     });
     // Get single destination
-    app.get("/destination/:id", async (req, res) => {
-      const id = req.params.id;
-      const query = {
-        _id: new ObjectId(id),
-      };
-      const result = await destinationCollection.findOne(query);
-      res.send(result);
-    });
+    app.get(
+      "/destination/:id",
+
+      async (req, res) => {
+        const id = req.params.id;
+        const query = {
+          _id: new ObjectId(id),
+        };
+        const result = await destinationCollection.findOne(query);
+        res.send(result);
+      },
+    );
     // Update destination:
     app.patch("/destination/:id", async (req, res) => {
       const { id } = req.params;
@@ -78,7 +104,7 @@ async function run() {
       res.send(result);
     });
     // Get all bookings:
-    app.get("/booking/:id", async (req, res) => {
+    app.get("/booking/:id", verifyToken, async (req, res) => {
       const { id } = req.params;
       const result = await bookingCollection.find({ userId: id }).toArray();
       res.send(result);
