@@ -26,17 +26,18 @@ async function run() {
     // await client.connect();
 
     const db = client.db("wanderlust");
-    const destinationCOllection = db.collection("destinations");
+    const destinationCollection = db.collection("destinations");
+    const bookingCollection = db.collection("bookings");
     // create destinations:
     app.post("/destination", async (req, res) => {
       const destination = req.body;
 
-      const result = await destinationCOllection.insertOne(destination);
+      const result = await destinationCollection.insertOne(destination);
       res.send(result);
     });
     // Get all destinations
     app.get("/destination", async (req, res) => {
-      const result = await destinationCOllection.find().toArray();
+      const result = await destinationCollection.find().toArray();
       res.send(result);
     });
     // Get single destination
@@ -45,35 +46,56 @@ async function run() {
       const query = {
         _id: new ObjectId(id),
       };
-      const result = await destinationCOllection.findOne(query);
+      const result = await destinationCollection.findOne(query);
       res.send(result);
     });
     // Update destination:
-    app.patch("/destination/:id/edit", async (req, res) => {
+    app.patch("/destination/:id", async (req, res) => {
       const { id } = req.params;
       // const query = {
       //   _id: new ObjectId(id),
       // };
       const updateData = req.body;
-      const result = await destinationCOllection.updateOne(
+      const result = await destinationCollection.updateOne(
         { _id: new ObjectId(id) },
         { $set: updateData },
       );
       res.send(result);
     });
-
+    // Delete destination
     app.delete("/destination/:id", async (req, res) => {
       const { id } = req.params;
       const query = {
         _id: new ObjectId(id),
       };
-      const result = destinationCOllection.deleteOne(query);
+      const result = destinationCollection.deleteOne(query);
+      res.send(result);
+    });
+    // create booking data
+    app.post("/booking", async (req, res) => {
+      const body = req.body;
+      const result = await bookingCollection.insertOne(body);
+      res.send(result);
+    });
+    // Get all bookings:
+    app.get("/booking/:id", async (req, res) => {
+      const { id } = req.params;
+      const result = await bookingCollection.find({ userId: id }).toArray();
+      res.send(result);
+    });
+    // Delete booking:
+    app.delete("/booking/:id", async (req, res) => {
+      const { id } = req.params;
+      const query = {
+        _id: new ObjectId(id),
+      };
+      const result = bookingCollection.deleteOne(query);
       res.send(result);
     });
     // await client.db("admin").command({ ping: 1 });
-    console.log(
-      "Pinged your deployment. You successfully connected to MongoDB!",
-    );
+    // console.log(
+    //   "Pinged your deployment. You successfully connected to MongoDB!",
+    // );
   } catch (err) {
     console.log(err);
   }
