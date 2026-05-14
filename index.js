@@ -30,7 +30,6 @@ const verifyToken = async (req, res, next) => {
   try {
     const { payload } = await jwtVerify(token, JWKS);
     next();
-    console.log(payload);
   } catch (error) {
     return res.status(403).json({ message: "Forbidden" });
   }
@@ -116,6 +115,11 @@ async function run() {
         _id: new ObjectId(id),
       };
       const result = bookingCollection.deleteOne(query);
+      res.send(result);
+    });
+    // Get featured destination
+    app.get("/featured", async (req, res) => {
+      const result = await destinationCollection.find().limit(4).toArray();
       res.send(result);
     });
     // await client.db("admin").command({ ping: 1 });
